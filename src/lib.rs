@@ -1,17 +1,22 @@
 // A lot of this code is from this blog post:
 // https://sachanganesh.com/programming/graph-tree-traversals-in-rust/
 
+mod preorderiter;
+use crate::preorderiter::*;
+
+pub type TreeIndex = usize;
+
 pub struct TreeNode {
     pub value: usize,
-    pub left: Option<Box<TreeNode>>,
-    pub right: Option<Box<TreeNode>>,
+    pub left: Option<TreeIndex>,
+    pub right: Option<TreeIndex>,
 }
 
 impl TreeNode {
     pub fn new(
         value: usize,
-        left: Option<Box<TreeNode>>,
-        right: Option<Box<TreeNode>>,
+        left: Option<TreeIndex>,
+        right: Option<TreeIndex>
     ) -> Self {
         TreeNode {
             value,
@@ -22,61 +27,67 @@ impl TreeNode {
 }
 
 pub struct Tree {
-    root: Option<TreeNode>
+    arena: Vec<Option<TreeNode>>,
+    root: Option<TreeIndex>,
 }
 
 impl Tree {
-    pub fn new(root: Option<TreeNode>) -> Self {
+    pub fn new() -> Self {
         Tree {
-            root
+            arena: Vec::new(),
+            root: None
         }
     }
 
     pub fn iter(&self) -> PreOrderIter {
-        PreOrderIter::new(self.root.as_ref())
+        PreOrderIter::new(self.root)
     }
-}
 
-pub struct PreOrderIter<'a> {
-    stack: Vec<&'a TreeNode>
-}
+    pub fn set_root(&mut self, root: Option<TreeIndex>) {
+        self.root = root;
+    }
 
-impl<'a> PreOrderIter<'a> {
-    pub fn new(root: Option<&'a TreeNode>) -> Self {
-        if let Some(node) = root {
-            PreOrderIter {
-                stack: vec![node]
-            }
+    pub fn add_node(&mut self, node: TreeNode) -> TreeIndex {
+        let index = self.arena.len();
+        self.arena.push(Some(node));
+        index
+    }
+
+    pub fn remove_node_at(&mut self, index: TreeIndex) -> Option<TreeNode> {
+        if let Some(node) = self.arena.get_mut(index) {
+            node.take()
         } else {
-            PreOrderIter {
-                stack: vec![]
-            }
+            None
+        }
+    }
+
+    pub fn node_at(&self, index: TreeIndex) -> Option<&TreeNode> {
+        return if let Some(node) = self.arena.get(index) {
+            node.as_ref()
+        } else {
+            None
+        }
+    }
+
+    pub fn node_at_mut(&mut self, index: TreeIndex) -> Option<&mut TreeNode> {
+        return if let Some(node) = self.arena.get_mut(index) {
+            node.as_mut()
+        } else {
+            None
         }
     }
 }
 
-impl<'a> Iterator for PreOrderIter<'a> {
-    type Item = &'a TreeNode;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(node) = self.stack.pop() {
-            if let Some(right) = &node.right {
-                self.stack.push(right)
-            }
-        }
-
-        if let Some(node) = self.stack.pop() {
-            if let Some(left) = &node.left {
-                self.stack.push(left)
-            }
-        }
-
-    None
+impl Default for Tree {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 
 
+
+////////////////////////////////////////////////////////////////////////////////
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
