@@ -98,7 +98,27 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        let mut tree = Tree::new();
+
+        let a = tree.add_node(TreeNode::new(4, None, None));
+        let b = tree.add_node(TreeNode::new(5, None, None));
+        let c = tree.add_node(TreeNode::new(2, Some(a), Some(b)));
+
+        let d = tree.add_node(TreeNode::new(3, None, None));
+        let e = tree.add_node(TreeNode::new(1, Some(c), Some(d)));
+
+        tree.set_root(Some(e));
+
+        let mut preorder = tree.iter();
+        while let Some(i) = preorder.next(&tree) {
+            let node = tree.node_at_mut(i).expect("node to exist at given index");
+            node.value += 10;
+        }
+
+        let mut preorder = tree.iter();
+        while let Some(i) = preorder.next(&tree) {
+            let node = tree.node_at(i).expect("node to exist at given index");
+            println!("{}", node.value)
+        }
     }
 }
