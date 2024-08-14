@@ -17,7 +17,7 @@ impl PreOrderIter {
         }
     }
 
-    pub fn next(&mut self, tree: &Tree) -> Option<TreeIndex> {
+    pub fn next<T: Sized + Copy>(&mut self, tree: &Tree<T>) -> Option<TreeIndex> {
         while let Some(node_index) = self.stack.pop() {
             if let Some(node) = tree.node_at(node_index) {
                 if let Some(right) = node.right {
