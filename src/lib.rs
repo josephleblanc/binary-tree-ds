@@ -19,6 +19,14 @@ impl<T: Sized + Copy> TreeNode<T> {
         TreeNode { value, left, right }
     }
 
+    pub fn add_left(&mut self, value: T) {
+        self.left = Some(Rc::new(RefCell::new(TreeNode::new(value, None, None))));
+    }
+
+    pub fn add_right(&mut self, value: T) {
+        self.right = Some(Rc::new(RefCell::new(TreeNode::new(value, None, None))));
+    }
+
     pub fn is_leaf(&self) -> bool {
         self.left.is_none() && self.left.is_none()
     }
@@ -33,11 +41,11 @@ impl<T: Sized + Copy> TreeNode<T> {
             node_total += 1;
 
             //let current: Rc<RefCell<TreeNode<T>>> = stack.pop().unwrap();
-            if let Some(right) = &current.borrow().right {
-                stack.push(right.to_owned());
-            };
             if let Some(left) = &current.borrow().left {
                 stack.push(left.to_owned());
+            };
+            if let Some(right) = &current.borrow().right {
+                stack.push(right.to_owned());
             };
         }
         node_total
@@ -45,17 +53,17 @@ impl<T: Sized + Copy> TreeNode<T> {
 
     pub fn pre_order_vec(self) -> Vec<TreeNodeRef<T>> {
         let start_node: TreeNodeRef<T> = Rc::new(RefCell::new(self));
-        let mut traverse_stack: Vec<TreeNodeRef<T>> = vec![start_node];
-        let mut pre_order_vec: Vec<TreeNodeRef<T>> = vec![];
+        let mut traverse_stack: Vec<TreeNodeRef<T>> = vec![start_node.clone()];
+        let mut pre_order_vec: Vec<TreeNodeRef<T>> = vec![start_node];
 
         while let Some(current) = traverse_stack.pop() {
-            if let Some(right) = &current.borrow().right {
-                pre_order_vec.push(right.clone());
-                traverse_stack.push(right.to_owned());
-            };
             if let Some(left) = &current.borrow().left {
                 pre_order_vec.push(left.clone());
                 traverse_stack.push(left.to_owned());
+            };
+            if let Some(right) = &current.borrow().right {
+                pre_order_vec.push(right.clone());
+                traverse_stack.push(right.to_owned());
             };
         }
         pre_order_vec
