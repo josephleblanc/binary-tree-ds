@@ -29,10 +29,6 @@ impl<T: Sized + Copy> TreeNode<T> {
         self.right = Some(Rc::new(RefCell::new(TreeNode::new(value, None, None))));
     }
 
-    pub fn is_leaf(&self) -> bool {
-        self.left.is_none() && self.left.is_none()
-    }
-
     pub fn add_leaf(&mut self, leaf: T) -> Result<(), String> {
         let node = self.borrow_mut();
         if node.left.is_none() {
@@ -43,6 +39,22 @@ impl<T: Sized + Copy> TreeNode<T> {
             return Ok(());
         }
         Err("Attempted to add a leaf to a full node".to_string())
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.left.is_none() && self.left.is_none()
+    }
+
+    pub fn count_children(&self) -> usize {
+        let mut count = 0;
+        if self.left.is_some() {
+            count += 1;
+        }
+        if self.right.is_some() {
+            count += 1;
+        }
+
+        count
     }
 
     pub fn count(self) -> usize {
