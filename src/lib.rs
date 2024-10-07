@@ -1,6 +1,8 @@
 // A lot of this code is from this blog post:
 // https://sachanganesh.com/programming/graph-tree-traversals-in-rust/
 
+use std::borrow::BorrowMut;
+use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
 mod preorderiter;
@@ -29,6 +31,18 @@ impl<T: Sized + Copy> TreeNode<T> {
 
     pub fn is_leaf(&self) -> bool {
         self.left.is_none() && self.left.is_none()
+    }
+
+    pub fn add_leaf(&mut self, leaf: T) -> Result<(), String> {
+        let node = self.borrow_mut();
+        if node.left.is_none() {
+            node.add_left(leaf);
+            return Ok(());
+        } else if node.right.is_none() {
+            node.add_right(leaf);
+            return Ok(());
+        }
+        Err("Attempted to add a leaf to a full node".to_string())
     }
 
     pub fn count(self) -> usize {
