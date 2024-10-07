@@ -13,16 +13,8 @@ pub struct TreeNode<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> TreeNode<T> {
-    pub fn new(
-        value: T,
-        left: Option<TreeIndex>,
-        right: Option<TreeIndex>
-    ) -> Self {
-        TreeNode {
-            value,
-            left,
-            right
-        }
+    pub fn new(value: T, left: Option<TreeIndex>, right: Option<TreeIndex>) -> Self {
+        TreeNode { value, left, right }
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -31,7 +23,7 @@ impl<T: Sized + Copy> TreeNode<T> {
 
     pub fn node_height(&self, tree: &Tree<T>) -> usize {
         if self.left.is_none() && self.right.is_none() {
-            return 0
+            return 0;
         }
 
         let mut left_height = 0;
@@ -46,7 +38,7 @@ impl<T: Sized + Copy> TreeNode<T> {
                 right_height = right_node.node_height(tree);
             }
         }
-        
+
         left_height.max(right_height) + 1
     }
 }
@@ -60,7 +52,7 @@ impl<T: Sized + Copy> Tree<T> {
     pub fn new() -> Self {
         Tree {
             arena: Vec::new(),
-            root: None
+            root: None,
         }
     }
 
@@ -91,7 +83,7 @@ impl<T: Sized + Copy> Tree<T> {
             node.as_ref()
         } else {
             None
-        }
+        };
     }
 
     pub fn node_at_mut(&mut self, index: TreeIndex) -> Option<&mut TreeNode<T>> {
@@ -99,13 +91,13 @@ impl<T: Sized + Copy> Tree<T> {
             node.as_mut()
         } else {
             None
-        }
+        };
     }
 
-    pub fn height(&self) -> Option< usize > {
+    pub fn height(&self) -> Option<usize> {
         if let Some(root_index) = self.root {
             if let Some(root_node) = self.node_at(root_index) {
-                return Some( root_node.node_height(self) )
+                return Some(root_node.node_height(self));
             }
         }
         None
@@ -113,7 +105,6 @@ impl<T: Sized + Copy> Tree<T> {
 
     pub fn tree_width(&self) -> Option<usize> {
         if let Some(root_index) = self.root {
-
             let mut index_stack = vec![root_index];
             let mut width = 0;
 
@@ -128,10 +119,9 @@ impl<T: Sized + Copy> Tree<T> {
                     if width < index_stack.len() {
                         width = index_stack.len();
                     }
-
                 }
             }
-            return Some(width)
+            return Some(width);
         }
         None
     }
@@ -142,9 +132,6 @@ impl<T: Sized + Copy> Default for Tree<T> {
         Self::new()
     }
 }
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 pub fn add(left: u64, right: u64) -> u64 {
@@ -193,7 +180,5 @@ mod tests {
         let e = tree.add_node(TreeNode::new(1, Some(c), Some(d)));
 
         tree.set_root(Some(e));
-
-
     }
 }
