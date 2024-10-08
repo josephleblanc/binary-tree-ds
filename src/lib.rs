@@ -8,6 +8,7 @@ use std::{cell::RefCell, rc::Rc};
 mod preorderiter;
 //use crate::preorderiter::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TreeNode<T: Sized + Copy> {
     pub value: T,
     pub left: Option<TreeNodeRef<T>>,
