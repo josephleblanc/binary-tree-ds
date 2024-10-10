@@ -22,6 +22,14 @@ impl<T: Sized + Copy> TreeNode<T> {
         TreeNode { value, left, right }
     }
 
+    pub fn new_rc(
+        value: T,
+        left: Option<TreeNodeRef<T>>,
+        right: Option<TreeNodeRef<T>>,
+    ) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(TreeNode { value, left, right }))
+    }
+
     pub fn add_left(&mut self, value: T) {
         self.left = Some(Rc::new(RefCell::new(TreeNode::new(value, None, None))));
     }
