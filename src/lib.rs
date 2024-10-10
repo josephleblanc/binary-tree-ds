@@ -5,6 +5,8 @@ use std::borrow::BorrowMut;
 use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
+use uuid::Uuid;
+
 mod preorderiter;
 //use crate::preorderiter::*;
 
@@ -13,13 +15,19 @@ pub struct TreeNode<T: Sized + Copy> {
     pub value: T,
     pub left: Option<TreeNodeRef<T>>,
     pub right: Option<TreeNodeRef<T>>,
+    id: Uuid,
 }
 
 type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
 
 impl<T: Sized + Copy> TreeNode<T> {
     pub fn new(value: T, left: Option<TreeNodeRef<T>>, right: Option<TreeNodeRef<T>>) -> Self {
-        TreeNode { value, left, right }
+        TreeNode {
+            value,
+            left,
+            right,
+            id: Uuid::new_v4(),
+        }
     }
 
     pub fn new_rc(
@@ -27,7 +35,12 @@ impl<T: Sized + Copy> TreeNode<T> {
         left: Option<TreeNodeRef<T>>,
         right: Option<TreeNodeRef<T>>,
     ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(TreeNode { value, left, right }))
+        Rc::new(RefCell::new(TreeNode {
+            value,
+            left,
+            right,
+            id: Uuid::new_v4(),
+        }))
     }
 
     pub fn add_left(&mut self, value: T) {
@@ -103,6 +116,17 @@ impl<T: Sized + Copy> TreeNode<T> {
         }
         pre_order_vec
     }
+
+    /// Function to find the depth of a given node in a binary tree.
+    // Algorithm taken from C++ implementation at:
+    // https://www.geeksforgeeks.org/height-and-depth-of-a-node-in-a-binary-tree/
+    pub fn depth(&self) -> isize {
+        // Base Case
+        if self.is_leaf() {
+            return 0;
+        }
+        todo!();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,7 +136,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    //use super::*;
 
     #[test]
     fn it_works() {}
