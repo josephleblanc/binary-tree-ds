@@ -2,7 +2,11 @@
 // https://sachanganesh.com/programming/graph-tree-traversals-in-rust/
 
 use std::borrow::BorrowMut;
-use std::error::Error;
+use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
+//use std::error::Error;
+use std::fmt::Debug;
 use std::{cell::RefCell, rc::Rc};
 
 use uuid::Uuid;
@@ -15,7 +19,11 @@ pub struct Tree<T: Sized + Copy> {
     pub root: TreeNodeRef<T>,
 }
 
-impl<T: Sized + Copy> Tree<T> {
+//pub struct TypstConfig {
+//
+//}
+
+impl<T: Sized + Copy + Debug + Display> Tree<T> {
     pub fn new(root: TreeNodeRef<T>) -> Self {
         Tree { root }
     }
@@ -26,11 +34,75 @@ impl<T: Sized + Copy> Tree<T> {
         let mut depth: isize = TreeNode::depth(root, &node_vec[0].borrow().id);
         for node in node_vec {
             let node_depth = TreeNode::depth(root, &node.borrow().id);
-            if depth > node_depth {
+            if depth < node_depth {
                 depth = node_depth;
             }
         }
         depth
+    }
+
+    /// The maximum possible width of the tree, given the depth. This is not the same as the max
+    /// width. Where max width is the greatest number of nodes on a level, the max possible width
+    /// is the max width if all nodes up to the tree's depth were populated.
+    pub fn max_width_upper(&self) -> isize {
+        let depth: isize = self.max_depth();
+
+        // max width is properly 1 on a lone leaf.
+        if depth == 0 {
+            return 1;
+        }
+        1 + 2_isize.pow(depth.try_into().unwrap())
+    }
+
+    /// Takes the tree and formats it into a typst representation of a binary tree node structure.
+    /// The format of the tree node was taken from:
+    /// https://sitandr.github.io/typst-examples-book/book/packages/graphs.html
+    pub fn typst_string(&self) -> String {
+        let mut out_string = String::new();
+
+        let root = self.root.borrow();
+        out_string.push_str(root.format_typst().as_str());
+
+        out_string
+    }
+
+    pub fn save_typst(&self, file: &'static str) -> std::io::Result<()> {
+        let mut f = File::create(file)?;
+        let pre_string = r#"
+#let data = (
+"#;
+        // Formatted tree nodes go here,
+        // e.g.
+        //[A], ([B], [C], [D]), ([E], [F])
+
+        let post_string = r#"
+)
+
+#import "@preview/cetz:0.1.2": canvas, draw, tree
+
+#canvas(length: 1cm, {
+  import draw: *
+
+  set-style(content: (padding: .2),
+    fill: gray.lighten(70%),
+    stroke: gray.lighten(70%))
+
+  tree.tree(data, spread: 2.5, grow: 1.5, draw-node: (node, _) => {
+    circle((), radius: .45, stroke: none)
+    content((), node.content)
+  }, draw-edge: (from, to, _) => {
+    line((a: from, number: .6, abs: true, b: to),
+         (a: to, number: .6, abs: true, b: from), mark: (end: ">"))
+  }, name: "tree")
+})
+"#;
+        let mut out_string = String::from(pre_string);
+
+        out_string.push_str(self.typst_string().as_str());
+        out_string.push_str(post_string);
+
+        f.write_all(out_string.as_bytes())?;
+        Ok(())
     }
 }
 
@@ -44,7 +116,25 @@ pub struct TreeNode<T: Sized + Copy> {
 
 type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
 
-impl<T: Sized + Copy> TreeNode<T> {
+impl<T: Sized + Copy + Display> TreeNode<T> {
+    pub fn format_typst(&self) -> String {
+        if self.is_leaf() {
+            return format!("[{}]", self.value);
+        }
+        let mut out = String::from("(");
+
+        out.push_str(format!("[{}], ", self.value).as_str());
+        if let Some(left) = self.left.clone() {
+            out.push_str(format!("{}, ", left.borrow().format_typst()).as_str());
+        }
+        if let Some(right) = self.right.clone() {
+            out.push_str(right.borrow().format_typst().to_string().as_str());
+        }
+        out.push(')');
+
+        out
+    }
+
     pub fn new(value: T, left: Option<TreeNodeRef<T>>, right: Option<TreeNodeRef<T>>) -> Self {
         TreeNode {
             value,
@@ -199,6 +289,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Read;
 
     #[test]
     fn it_works() {}
@@ -271,9 +362,136 @@ mod tests {
         let node1_rc = Rc::new(RefCell::new(node1));
 
         let tree = Tree::new(node1_rc.clone());
+        let node_id = node7.clone().borrow().id;
         assert_eq!(
             tree.max_depth(),
-            TreeNode::depth(&node1_rc.borrow(), &tree.root.borrow().id)
+            TreeNode::depth(&node1_rc.borrow(), &node_id)
+        );
+        assert_eq!(tree.max_depth(), 3);
+    }
+    #[test]
+    fn tree_max_width_possible() {
+        // Test node depth on the following tree:
+        //                 1
+        //                / \
+        //               2   3
+        //              / \   \
+        //             4   5   6
+        //                /     \
+        //               7       8
+        //
+        // max possible width: 1 + 2^3 = 9
+        let node4 = TreeNode::new_rc(4, None, None);
+        let node7 = TreeNode::new_rc(7, None, None);
+        let node8 = TreeNode::new_rc(7, None, None);
+
+        let node6 = TreeNode::new_rc(6, None, Some(node8.clone()));
+        let node3 = TreeNode::new_rc(3, None, Some(node6.clone()));
+        let node5 = TreeNode::new_rc(5, Some(node7.clone()), None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1));
+
+        let tree = Tree::new(node1_rc);
+        assert_eq!(tree.max_width_upper(), 9);
+
+        let tree = Tree::new(node2);
+        assert_eq!(tree.max_width_upper(), 5);
+
+        let tree = Tree::new(node5);
+        assert_eq!(tree.max_width_upper(), 3);
+
+        let tree = Tree::new(node7);
+        assert_eq!(tree.max_width_upper(), 1);
+    }
+
+    #[test]
+    fn test_create_typst_string() {
+        // Test node depth on the following tree:
+        //                 1
+        //                / \
+        //               2   3
+        //              / \
+        //             4   5
+        //
+        // max possible width: 1 + 2^3 = 9
+        let node4 = TreeNode::new_rc(4, None, None);
+
+        let node3 = TreeNode::new_rc(3, None, None);
+        let node5 = TreeNode::new_rc(5, None, None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1));
+
+        //let tree = Tree::new(node1_rc);
+        let tree5_node = Tree::new(node5);
+        assert_eq!(tree5_node.typst_string(), "[5]");
+        assert_ne!(tree5_node.typst_string(), "[1]");
+
+        let tree2 = Tree::new(node2);
+        assert_eq!(tree2.typst_string(), "([2], [4], [5])");
+
+        let tree1 = Tree::new(node1_rc);
+        assert_eq!(tree1.typst_string(), "([1], ([2], [4], [5]), [3])");
+    }
+
+    #[test]
+    fn save_typst() {
+        // Test node depth on the following tree:
+        //                 1
+        //                / \
+        //               2   3
+        //              / \
+        //             4   5
+        //
+        // max possible width: 1 + 2^3 = 9
+        let node4 = TreeNode::new_rc(4, None, None);
+
+        let node3 = TreeNode::new_rc(3, None, None);
+        let node5 = TreeNode::new_rc(5, None, None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1));
+        let tree1 = Tree::new(node1_rc);
+        tree1.save_typst("./typst_test.typ");
+
+        let mut file = File::open("./typst_test.typ").unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        assert_eq!(
+            contents,
+            r#"
+#let data = (
+([1], ([2], [4], [5]), [3])
+)
+
+#import "@preview/cetz:0.1.2": canvas, draw, tree
+
+#canvas(length: 1cm, {
+  import draw: *
+
+  set-style(content: (padding: .2),
+    fill: gray.lighten(70%),
+    stroke: gray.lighten(70%))
+
+  tree.tree(data, spread: 2.5, grow: 1.5, draw-node: (node, _) => {
+    circle((), radius: .45, stroke: none)
+    content((), node.content)
+  }, draw-edge: (from, to, _) => {
+    line((a: from, number: .6, abs: true, b: to),
+         (a: to, number: .6, abs: true, b: from), mark: (end: ">"))
+  }, name: "tree")
+})
+"#
         );
     }
 }
