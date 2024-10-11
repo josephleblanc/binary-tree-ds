@@ -11,6 +11,30 @@ mod preorderiter;
 //use crate::preorderiter::*;
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Tree<T: Sized + Copy> {
+    pub root: TreeNodeRef<T>,
+}
+
+impl<T: Sized + Copy> Tree<T> {
+    pub fn new(root: TreeNodeRef<T>) -> Self {
+        Tree { root }
+    }
+    pub fn max_depth(&self) -> isize {
+        let root: &TreeNode<T> = &self.root.borrow();
+        let node_vec = root.pre_order_vec();
+
+        let mut depth: isize = TreeNode::depth(root, &node_vec[0].borrow().id);
+        for node in node_vec {
+            let node_depth = TreeNode::depth(root, &node.borrow().id);
+            if depth > node_depth {
+                depth = node_depth;
+            }
+        }
+        depth
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TreeNode<T: Sized + Copy> {
     pub value: T,
     pub left: Option<TreeNodeRef<T>>,
@@ -107,8 +131,12 @@ impl<T: Sized + Copy> TreeNode<T> {
         node_total
     }
 
-    pub fn pre_order_vec(self) -> Vec<TreeNodeRef<T>> {
-        let start_node: TreeNodeRef<T> = Rc::new(RefCell::new(self));
+    pub fn pre_order_vec(&self) -> Vec<TreeNodeRef<T>> {
+        // Not sure about possible repurcussions from the clone below, if both contain Rc's to the
+        // same nodes.
+        // TODO: Add some tests for what happens if the nodes are changed through the vector and/or
+        // through the original tree.
+        let start_node: TreeNodeRef<T> = Rc::new(RefCell::new(self.clone()));
         let mut traverse_stack: Vec<TreeNodeRef<T>> = vec![start_node.clone()];
         let mut pre_order_vec: Vec<TreeNodeRef<T>> = vec![start_node];
 
@@ -139,11 +167,11 @@ impl<T: Sized + Copy> TreeNode<T> {
     ///
     // Algorithm taken from C++ implementation at:
     // https://www.geeksforgeeks.org/height-and-depth-of-a-node-in-a-binary-tree/
-    pub fn depth(root: &TreeNode<T>, _id: Uuid) -> isize {
+    pub fn depth(root: &TreeNode<T>, _id: &Uuid) -> isize {
         let mut dist: isize = -1;
 
         // Check if current node is target node;
-        if root.id == _id {
+        if &root.id == _id {
             return dist + 1;
         }
         if let Some(left) = &root.left {
@@ -198,14 +226,14 @@ mod tests {
 
         let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
 
-        let depth1 = TreeNode::depth(&node1, node1.id);
-        let depth2 = TreeNode::depth(&node1, node2.borrow().id);
-        let depth3 = TreeNode::depth(&node1, node3.borrow().id);
-        let depth4 = TreeNode::depth(&node1, node4.borrow().id);
-        let depth5 = TreeNode::depth(&node1, node5.borrow().id);
-        let depth6 = TreeNode::depth(&node1, node6.borrow().id);
-        let depth7 = TreeNode::depth(&node1, node7.borrow().id);
-        let depth8 = TreeNode::depth(&node1, node8.borrow().id);
+        let depth1 = TreeNode::depth(&node1, &node1.id);
+        let depth2 = TreeNode::depth(&node1, &node2.borrow().id);
+        let depth3 = TreeNode::depth(&node1, &node3.borrow().id);
+        let depth4 = TreeNode::depth(&node1, &node4.borrow().id);
+        let depth5 = TreeNode::depth(&node1, &node5.borrow().id);
+        let depth6 = TreeNode::depth(&node1, &node6.borrow().id);
+        let depth7 = TreeNode::depth(&node1, &node7.borrow().id);
+        let depth8 = TreeNode::depth(&node1, &node8.borrow().id);
 
         assert_eq!(0, depth1);
         assert_eq!(1, depth2);
@@ -215,5 +243,37 @@ mod tests {
         assert_eq!(2, depth6);
         assert_eq!(3, depth7);
         assert_eq!(3, depth8);
+    }
+
+    #[test]
+    fn tree_depth() {
+        // Test node depth on the following tree:
+        // depth: 0        1
+        //                / \
+        // depth: 1      2   3
+        //              / \   \
+        // depth: 2    4   5   6
+        //                /     \
+        // depth: 3      7       8
+        //
+        let node4 = TreeNode::new_rc(4, None, None);
+        let node7 = TreeNode::new_rc(7, None, None);
+        let node8 = TreeNode::new_rc(7, None, None);
+
+        let node6 = TreeNode::new_rc(6, None, Some(node8.clone()));
+        let node3 = TreeNode::new_rc(3, None, Some(node6.clone()));
+        let node5 = TreeNode::new_rc(5, Some(node7.clone()), None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1));
+
+        let tree = Tree::new(node1_rc.clone());
+        assert_eq!(
+            tree.max_depth(),
+            TreeNode::depth(&node1_rc.borrow(), &tree.root.borrow().id)
+        );
     }
 }
