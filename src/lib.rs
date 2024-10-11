@@ -116,7 +116,7 @@ pub struct TreeNode<T: Sized + Copy> {
 
 impl<T: Sized + Copy + PartialEq> PartialEq for TreeNode<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.value == other.value && self.left == other.right && self.right == other.right
+        self.value == other.value && self.left == other.left && self.right == other.right
     }
 }
 
