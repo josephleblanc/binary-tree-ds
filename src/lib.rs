@@ -106,12 +106,18 @@ impl<T: Sized + Copy + Debug + Display> Tree<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct TreeNode<T: Sized + Copy> {
     pub value: T,
     pub left: Option<TreeNodeRef<T>>,
     pub right: Option<TreeNodeRef<T>>,
     pub(crate) id: Uuid,
+}
+
+impl<T: Sized + Copy + PartialEq> PartialEq for TreeNode<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value && self.left == other.right && self.right == other.right
+    }
 }
 
 type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
