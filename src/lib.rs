@@ -131,20 +131,13 @@ type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
 
 impl<T: Sized + Copy + Display> TreeNode<T> {
     pub fn format_typst(&self) -> String {
-        println!("format_typst called on {}", self.value);
         if self.is_leaf() {
-            println!("self.is_leaf() == true for:{}", self.value);
             return format!("[{}]", self.value);
         }
         let mut out = String::from("(");
 
         out.push_str(format!("[{}], ", self.value).as_str());
         if let Some(left) = self.left.clone() {
-            println!(
-                "Some(left) detected for {}, \nleft is {}",
-                self.value,
-                left.clone().borrow().value
-            );
             out.push_str(format!("{}, ", left.borrow().format_typst()).as_str());
         }
         if let Some(right) = self.right.clone() {
@@ -206,7 +199,7 @@ impl<T: Sized + Copy + Display> TreeNode<T> {
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.left.is_none() && self.left.is_none()
+        self.left.is_none() && self.right.is_none()
     }
 
     pub fn count_children(&self) -> usize {
