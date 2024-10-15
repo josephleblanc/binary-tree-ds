@@ -114,6 +114,13 @@ pub struct TreeNode<T: Sized + Copy> {
     pub(crate) id: Uuid,
 }
 
+/// Tests for equality between contents of trees. To check if the trees are identical use:
+///
+/// node1 == node2 && node1.id == node2.id
+///
+/// The differentiation is necessary for the uuid created upon creation of the different trees,
+/// which is used when identifying that specific node in an internal function (namely the .depth()
+/// function)
 impl<T: Sized + Copy + PartialEq> PartialEq for TreeNode<T> {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value && self.left == other.left && self.right == other.right
@@ -124,17 +131,24 @@ type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
 
 impl<T: Sized + Copy + Display> TreeNode<T> {
     pub fn format_typst(&self) -> String {
+        println!("format_typst called on {}", self.value);
         if self.is_leaf() {
+            println!("self.is_leaf() == true for:{}", self.value);
             return format!("[{}]", self.value);
         }
         let mut out = String::from("(");
 
         out.push_str(format!("[{}], ", self.value).as_str());
         if let Some(left) = self.left.clone() {
+            println!(
+                "Some(left) detected for {}, \nleft is {}",
+                self.value,
+                left.clone().borrow().value
+            );
             out.push_str(format!("{}, ", left.borrow().format_typst()).as_str());
         }
         if let Some(right) = self.right.clone() {
-            out.push_str(right.borrow().format_typst().to_string().as_str());
+            out.push_str(right.borrow().format_typst().as_str());
         }
         out.push(')');
 
