@@ -27,6 +27,51 @@ impl<T: Sized + Copy + Debug + Display> Tree<T> {
     pub fn new(root: TreeNodeRef<T>) -> Self {
         Tree { root }
     }
+
+    /// Get the `Rc<RefCell>` of the parent of the node passed as argument.
+    ///
+    /// e.g. To get calling tree.get_parent(&node_ref4) on the following tree returns node_ref2:
+    ///
+    ///     1
+    ///    / \
+    ///   2   3
+    ///  / \
+    /// 4   5
+    ///
+    pub fn get_parent(&self, node_ref: &TreeNodeRef<T>) -> TreeNodeRef<T> {
+        let node = node_ref.borrow();
+        // TODO: error handling
+        Tree::get_parent_rec(&self.root, node.id).expect("Node not found")
+    }
+
+    fn get_parent_rec(node_ref: &TreeNodeRef<T>, find_id: Uuid) -> Option<TreeNodeRef<T>> {
+        let node = node_ref.borrow();
+        let debug_value = node.value;
+        println!("debug_value: {}", debug_value);
+
+        if let Some(ref right) = node.right {
+            if right.borrow().id == find_id {
+                // Clones the Rc, not the value
+                return Some(node_ref.clone());
+            }
+            let right_opt = Tree::get_parent_rec(right, find_id);
+            if right_opt.is_some() {
+                return right_opt;
+            }
+        }
+        if let Some(ref left) = node.left {
+            if left.borrow().id == find_id {
+                // Clones the Rc, not the value
+                return Some(node_ref.clone());
+            }
+            let left_opt = Tree::get_parent_rec(left, find_id);
+            if left_opt.is_some() {
+                return left_opt;
+            }
+        }
+        None
+    }
+
     pub fn max_depth(&self) -> isize {
         let root: &TreeNode<T> = &self.root.borrow();
         let node_vec = root.pre_order_vec();
@@ -506,5 +551,37 @@ mod tests {
 })
 "#
         );
+    }
+    #[test]
+    fn get_parent() {
+        // Test tree:
+        //                 1
+        //                / \
+        //               2   3
+        //              / \
+        //             4   5
+        //
+        let node4 = TreeNode::new_rc(4, None, None);
+
+        let node3 = TreeNode::new_rc(3, None, None);
+        let node5 = TreeNode::new_rc(5, None, None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1));
+        let tree1 = Tree::new(node1_rc);
+
+        let node4_parent = tree1.get_parent(&node4);
+
+        for node in tree1.root.borrow().pre_order_vec() {
+            println!(
+                "node val: {}, node id: {}",
+                node.borrow().value,
+                node.borrow().id
+            );
+        }
+        assert_eq!(node2.borrow().id, node4_parent.borrow().id);
     }
 }
