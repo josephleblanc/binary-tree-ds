@@ -31,6 +31,7 @@ impl<T: Sized + Copy + Debug + Display> Tree<T> {
     pub fn get_by_id(&self, id: Uuid) -> Option<TreeNodeRef<T>> {
         self.root.get_by_id(id)
     }
+
     /// Get the `Rc<RefCell>` of the parent of the node passed as argument.
     ///
     // e.g. To get calling tree.get_parent(&node_ref4) on the following tree returns node_ref2:
@@ -194,6 +195,10 @@ impl<T: Sized + Copy + Display> TreeNode<T> {
         out.push(')');
 
         out
+    }
+
+    pub fn cmp_id(&self, id: Uuid) -> bool {
+        self.id == id
     }
 
     pub fn new(value: T, left: Option<TreeNodeRef<T>>, right: Option<TreeNodeRef<T>>) -> Self {
