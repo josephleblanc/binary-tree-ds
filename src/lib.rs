@@ -28,16 +28,19 @@ impl<T: Sized + Copy + Debug + Display> Tree<T> {
         Tree { root }
     }
 
+    pub fn get_by_id(&self, id: Uuid) -> Option<TreeNodeRef<T>> {
+        self.root.get_by_id(id)
+    }
     /// Get the `Rc<RefCell>` of the parent of the node passed as argument.
     ///
-    /// e.g. To get calling tree.get_parent(&node_ref4) on the following tree returns node_ref2:
-    ///
-    ///     1
-    ///    / \
-    ///   2   3
-    ///  / \
-    /// 4   5
-    ///
+    // e.g. To get calling tree.get_parent(&node_ref4) on the following tree returns node_ref2:
+    //
+    //     1
+    //    / \
+    //   2   3
+    //  / \
+    // 4   5
+    //
     pub fn get_parent(&self, node_ref: &TreeNodeRef<T>) -> TreeNodeRef<T> {
         let node = node_ref.borrow();
         // TODO: error handling
@@ -339,6 +342,56 @@ impl<T: Sized + Copy + Display> TreeNode<T> {
     }
 }
 
+pub trait TreeNodeProperties<T: Copy + Sized> {
+    fn get_by_id(&self, id: Uuid) -> Option<TreeNodeRef<T>>;
+}
+
+//impl<T: Copy + Sized + Display> TreeNodeProperties<T> for TreeNodeRef<T> {
+//    fn get_by_id(&self, id: Uuid) -> Option<TreeNodeRef<T>> {
+//        if self.borrow().id == id {
+//            return Some(self.clone());
+//        }
+//
+//        let mut right_ret: Option<TreeNodeRef<T>> = None;
+//        let mut left_ret: Option<TreeNodeRef<T>> = None;
+//        if let Some(ref right) = self.borrow().right {
+//            right_ret = right.get_by_id(id);
+//        }
+//        if let Some(ref left) = self.borrow().left {
+//            left_ret = left.get_by_id(id);
+//        }
+//
+//        if right_ret.is_some() {
+//            return right_ret;
+//        }
+//        left_ret
+//    }
+//}
+
+/// Search children for node by uuid.
+impl<T: Copy + Sized + Display> TreeNodeProperties<T> for TreeNodeRef<T> {
+    fn get_by_id(&self, id: Uuid) -> Option<TreeNodeRef<T>> {
+        if self.borrow().id == id {
+            return Some(self.clone());
+        }
+
+        if let Some(ref right) = self.borrow().right {
+            let right_ret = right.get_by_id(id);
+            if right_ret.is_some() {
+                return right_ret;
+            }
+        }
+        if let Some(ref left) = self.borrow().left {
+            let left_ret = left.get_by_id(id);
+            if left_ret.is_some() {
+                return left_ret;
+            }
+        }
+
+        None
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
@@ -583,5 +636,45 @@ mod tests {
             );
         }
         assert_eq!(node2.borrow().id, node4_parent.borrow().id);
+    }
+
+    #[test]
+    fn test_get_by_id() {
+        // Test tree:
+        //                 1
+        //                / \
+        //               2   3
+        //              / \
+        //             4   5
+        //
+        let node4 = TreeNode::new_rc(4, None, None);
+
+        let node3 = TreeNode::new_rc(3, None, None);
+        let node5 = TreeNode::new_rc(5, None, None);
+
+        let node2 = TreeNode::new_rc(2, Some(node4.clone()), Some(node5.clone()));
+
+        let node1 = TreeNode::new(1, Some(node2.clone()), Some(node3.clone()));
+
+        let node1_rc = Rc::new(RefCell::new(node1.clone()));
+        let tree = Tree::new(node1_rc.clone());
+
+        println!(
+            "node1_rc val: {}, node id: {}",
+            node1_rc.borrow().value,
+            node1_rc.borrow().id,
+        );
+
+        for node in tree.root.borrow().pre_order_vec() {
+            println!(
+                "node val: {}, node id: {}",
+                node.borrow().value,
+                node.borrow().id
+            );
+        }
+        assert_eq!(node3, tree.get_by_id(node3.borrow().id).unwrap());
+        assert_ne!(node2, tree.get_by_id(node3.borrow().id).unwrap());
+        assert_eq!(node1_rc, tree.get_by_id(node1.id).unwrap());
+        assert_eq!(node5, tree.get_by_id(node5.borrow().id).unwrap());
     }
 }
