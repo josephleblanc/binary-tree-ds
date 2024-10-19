@@ -179,6 +179,9 @@ impl<T: Sized + Copy + PartialEq> PartialEq for TreeNode<T> {
 type TreeNodeRef<T: Sized + Copy> = Rc<RefCell<TreeNode<T>>>;
 
 impl<T: Sized + Copy + Display> TreeNode<T> {
+    pub fn get_id(&self) -> Uuid {
+        self.id
+    }
     pub fn format_typst(&self) -> String {
         if self.is_leaf() {
             return format!("[{}]", self.value);
