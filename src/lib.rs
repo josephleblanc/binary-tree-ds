@@ -155,6 +155,15 @@ impl<T: Sized + Copy + Debug + Display> Tree<T> {
     }
 }
 
+impl<'a, T> From<&'a mut Tree<T>> for &'a Tree<T>
+where
+    T: Copy,
+{
+    fn from(value: &'a mut Tree<T>) -> Self {
+        &(*value)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TreeNode<T: Sized + Copy> {
     pub value: T,
